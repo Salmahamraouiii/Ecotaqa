@@ -1,0 +1,114 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  USER
+  COMPANY
+  ADMIN
+}
+
+enum RegionStatus {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String   // Hashed
+  name          String?
+  role          Role     @default(USER)
+  energyScore   Int      @default(100)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  companyId     String?
+  company       Company? @relation(fields: [companyId], references: [id])
+  alerts        Alert[]
+  consumption   Consumption[]
+}
+
+model Company {
+  id            String   @id @default(uuid())
+  name          String
+  industry      String?
+  subscription  String   @default("FREE")
+  createdAt     DateTime @default(now())
+
+  // Relations
+  users         User[]
+  buildings     Building[]
+}
+
+model Building {
+  id            String   @id @default(uuid())
+  name          String
+  address       String?
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id])
+  
+  departments   Department[]
+  consumption   Consumption[]
+}
+
+model Department {
+  id            String   @id @default(uuid())
+  name          String
+  buildingId    String
+  building      Building @relation(fields: [buildingId], references: [id])
+  
+  consumption   Consumption[]
+}
+
+model Region {
+  id            String       @id @default(uuid())
+  name          String       @unique
+  latitude      Float
+  longitude     Float
+  status        RegionStatus @default(LOW)
+  
+  consumption   Consumption[]
+}
+
+model Consumption {
+  id            String   @id @default(uuid())
+  value         Float    // In kWh
+  cost          Float?   // Estimated cost
+  timestamp     DateTime @default(now())
+  
+  // Relations - Can belong to a User, Building, Department, or Region
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id])
+  
+  buildingId    String?
+  building      Building? @relation(fields: [buildingId], references: [id])
+  
+  departmentId  String?
+  department    Department? @relation(fields: [departmentId], references: [id])
+  
+  regionId      String?
+  region        Region?  @relation(fields: [regionId], references: [id])
+}
+
+model Alert {
+  id            String   @id @default(uuid())
+  message       String
+  type          String   // e.g., "SPIKE", "WASTE", "GOAL"
+  severity      String   // "INFO", "WARNING", "CRITICAL"
+  isRead        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+}
