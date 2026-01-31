@@ -1,19 +1,17 @@
 'use client';
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Zap } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Leaf, ArrowRight, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -21,87 +19,97 @@ export default function LoginPage() {
         setError('');
 
         try {
-            const res = await signIn('credentials', {
+            const result = await signIn('credentials', {
+                redirect: false,
                 email,
                 password,
-                redirect: false,
             });
 
-            if (res?.error) {
+            if (result?.error) {
                 setError('Invalid credentials');
+                setLoading(false);
             } else {
                 router.push('/dashboard');
-                router.refresh();
             }
-        } catch (err) {
-            setError('Something went wrong');
-        } finally {
+        } catch (error) {
+            setError('An error occurred. Please try again.');
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black p-6">
-            <Card className="w-full max-w-md glass border-white/10">
-                <CardHeader className="text-center space-y-2">
-                    <div className="mx-auto w-12 h-12 rounded-full bg-primary-600 flex items-center justify-center text-white mb-4">
-                        <Zap className="w-6 h-6" />
+        <div className="min-h-screen flex items-center justify-center bg-black relative overflow-hidden">
+            {/* Background Effects */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+                <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-green-500/20 blur-[120px] animate-pulse" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/10 blur-[100px]" />
+            </div>
+
+            <div className="w-full max-w-md p-8 relative z-10">
+                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
+                    <div className="text-center mb-8">
+                        <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-600 rounded-xl mx-auto flex items-center justify-center text-white mb-4 shadow-lg shadow-green-500/20">
+                            <Leaf size={24} />
+                        </div>
+                        <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
+                        <p className="text-gray-400">Sign in to access your energy dashboard</p>
                     </div>
-                    <CardTitle className="text-2xl font-bold text-white">Welcome Back</CardTitle>
-                    <p className="text-gray-400">Sign in to access your energy dashboard</p>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        {error && (
-                            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm text-center">
-                                {error}
-                            </div>
-                        )}
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-300">Email</label>
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
                             <input
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                placeholder="admin@company.com"
-                                className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-gray-500 focus:ring-2 focus:ring-primary-500 focus:outline-none transition-all"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                                placeholder="admin@ecotaqa.com"
                                 required
                             />
                         </div>
-                        <div className="space-y-2">
-                            <div className="flex justify-between">
-                                <label className="text-sm font-medium text-gray-300">Password</label>
-                                <Link href="#" className="text-sm text-primary-400 hover:text-primary-300">Forgot password?</Link>
+
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="block text-sm font-medium text-gray-300">Password</label>
+                                <a href="#" className="text-xs text-green-400 hover:text-green-300">Forgot password?</a>
                             </div>
                             <input
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="password"
-                                className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-gray-500 focus:ring-2 focus:ring-primary-500 focus:outline-none transition-all"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                                placeholder="••••••••"
                                 required
                             />
                         </div>
-                        <Button
+
+                        {error && (
+                            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+                                {error}
+                            </div>
+                        )}
+
+                        <button
                             type="submit"
                             disabled={loading}
-                            className="w-full py-6 text-lg font-semibold bg-primary-600 hover:bg-primary-500 transition-all shadow-lg shadow-primary-500/20"
+                            className="w-full py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-semibold rounded-lg shadow-lg shadow-green-500/25 flex items-center justify-center space-x-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
                         >
-                            {loading ? 'Signing in...' : 'Sign In'}
-                        </Button>
+                            {loading ? <Loader2 className="animate-spin" size={20} /> : (
+                                <>
+                                    <span>Sign In</span>
+                                    <ArrowRight size={18} />
+                                </>
+                            )}
+                        </button>
                     </form>
 
-                    <div className="text-center text-sm text-gray-400 mt-4">
-                        Don't have an account? <Link href="/register" className="text-primary-400 hover:text-primary-300 font-medium">Sign up</Link>
+                    <div className="mt-8 text-center text-sm text-gray-400">
+                        Don't have an account?{' '}
+                        <Link href="/register" className="text-green-400 hover:text-green-300 font-medium ml-1">
+                            Create Account
+                        </Link>
                     </div>
-                </CardContent>
-            </Card>
-
-            {/* Demo Credentials Hint */}
-            <div className="fixed bottom-4 right-4 bg-slate-800 p-4 rounded-lg border border-slate-700 text-xs text-gray-400 shadow-xl">
-                <p className="font-bold text-gray-200 mb-1">Demo Credentials:</p>
-                <p>User: admin@company.com</p>
-                <p>Pass: password</p>
+                </div>
             </div>
         </div>
     );

@@ -7,27 +7,19 @@ generator client {
 
 datasource db {
   provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
-enum Role {
-  USER
-  COMPANY
-  ADMIN
-}
-
-enum RegionStatus {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
-}
+// SQLite doesn't support enums, using String instead
+// Valid values for role: "USER", "COMPANY", "ADMIN"
+// Valid values for status: "LOW", "MEDIUM", "HIGH", "CRITICAL"
 
 model User {
   id            String   @id @default(uuid())
   email         String   @unique
   password      String   // Hashed
   name          String?
-  role          Role     @default(USER)
+  role          String   @default("USER")
   energyScore   Int      @default(100)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -37,6 +29,11 @@ model User {
   company       Company? @relation(fields: [companyId], references: [id])
   alerts        Alert[]
   consumption   Consumption[]
+  
+  // Gamification & Education
+  points        Int      @default(0)
+  badges        UserBadge[]
+  lessons       UserLesson[]
 }
 
 model Company {
@@ -49,6 +46,7 @@ model Company {
   // Relations
   users         User[]
   buildings     Building[]
+  goals         Goal[]
 }
 
 model Building {
@@ -76,7 +74,7 @@ model Region {
   name          String       @unique
   latitude      Float
   longitude     Float
-  status        RegionStatus @default(LOW)
+  status        String   @default("LOW")
   
   consumption   Consumption[]
 }
@@ -111,4 +109,78 @@ model Alert {
   
   userId        String
   user          User     @relation(fields: [userId], references: [id])
+}
+
+// Gamification Models
+
+model Badge {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  description   String
+  iconUrl       String?
+  createdAt     DateTime @default(now())
+  
+  users         UserBadge[]
+}
+
+model UserBadge {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  badgeId       String
+  badge         Badge    @relation(fields: [badgeId], references: [id])
+  awardedAt     DateTime @default(now())
+  
+  @@unique([userId, badgeId])
+}
+
+// Sustainability Goals
+
+model Goal {
+  id            String   @id @default(uuid())
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id])
+  
+  type          String   // e.g., "REDUCTION", "EFFICIENCY", "RENEWABLE"
+  targetValue   Float
+  currentValue  Float    @default(0)
+  unit          String   // "kWh", "%", "CO2"
+  
+  startDate     DateTime
+  endDate       DateTime
+  status        String   @default("ACTIVE") // "ACTIVE", "COMPLETED", "FAILED"
+  
+  updatedAt     DateTime @updatedAt
+}
+
+// Educational Content
+
+model Tip {
+  id            String   @id @default(uuid())
+  title         String
+  content       String
+  category      String   // "Home", "Office", "Industrial"
+  audience      String   @default("USER") // Target audience
+  createdAt     DateTime @default(now())
+}
+
+model Lesson {
+  id            String   @id @default(uuid())
+  title         String
+  content       String   // Could be markdown or link to video
+  pointsReward  Int      @default(10)
+  createdAt     DateTime @default(now())
+  
+  users         UserLesson[]
+}
+
+model UserLesson {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  lessonId      String
+  lesson        Lesson   @relation(fields: [lessonId], references: [id])
+  completedAt   DateTime @default(now())
+  
+  @@unique([userId, lessonId])
 }

@@ -2,66 +2,111 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
 import {
     LayoutDashboard,
-    BarChart3,
     Map,
-    Zap,
+    Building2,
+    AlertTriangle,
+    Trophy,
     Settings,
     LogOut,
-    Leaf
+    Leaf,
+    ChevronLeft,
+    ChevronRight,
+    TrendingDown
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useState } from 'react';
+import { signOut } from 'next-auth/react';
 
-const navItems = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-    { name: 'Regional Map', href: '/map', icon: Map },
-    { name: 'Live Monitor', href: '/monitor', icon: Zap },
-    { name: 'Sustainability', href: '/sustainability', icon: Leaf },
-    { name: 'Settings', href: '/settings', icon: Settings },
+const menuItems = [
+    { icon: LayoutDashboard, label: 'Tableau de bord', href: '/dashboard' },
+    { icon: Map, label: 'Cartographie', href: '/map' },
+    { icon: Building2, label: 'Bâtiments', href: '/buildings' },
+    { icon: AlertTriangle, label: 'Alertes', href: '/alerts' },
+    { icon: Trophy, label: 'Défis & Badges', href: '/gamification' },
+    { icon: Settings, label: 'Paramètres', href: '/settings' },
 ];
 
-export function Sidebar() {
+export default function Sidebar() {
     const pathname = usePathname();
+    const [collapsed, setCollapsed] = useState(false);
 
     return (
-        <aside className="w-64 h-screen bg-white dark:bg-dark-bg border-r border-gray-200 dark:border-dark-border fixed left-0 top-0 flex flex-col z-50">
-            <div className="p-6 flex items-center gap-2 border-b border-gray-200 dark:border-dark-border">
-                <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white font-bold">
-                    E
+        <div
+            className={cn(
+                "fixed left-0 top-0 h-screen bg-slate-900 border-r border-white/5 transition-all duration-300 z-50 flex flex-col",
+                collapsed ? "w-20" : "w-72"
+            )}
+        >
+            {/* Logo Section */}
+            <div className="p-6 flex items-center gap-3">
+                <div className="min-w-[40px] h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                    <Leaf size={20} />
                 </div>
-                <span className="text-xl font-bold text-gray-900 dark:text-white">EcoTrack</span>
+                {!collapsed && (
+                    <span className="text-xl font-bold text-white tracking-tight">Ecotaqa</span>
+                )}
             </div>
 
-            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-                {navItems.map((item) => {
-                    const Icon = item.icon;
+            {/* Collapse Toggle */}
+            <button
+                onClick={() => setCollapsed(!collapsed)}
+                className="absolute -right-3 top-20 w-6 h-6 bg-slate-800 border border-white/10 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+            >
+                {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+            </button>
+
+            {/* Navigation */}
+            <nav className="flex-1 px-3 mt-10 space-y-2">
+                {menuItems.map((item) => {
                     const isActive = pathname === item.href;
                     return (
                         <Link
                             key={item.href}
                             href={item.href}
                             className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+                                "flex items-center gap-4 px-4 py-3 rounded-xl transition-all group",
                                 isActive
-                                    ? "bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400"
-                                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                    ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
+                                    : "text-slate-400 hover:bg-white/5 hover:text-white"
                             )}
                         >
-                            <Icon className="w-5 h-5" />
-                            {item.name}
+                            <item.icon size={22} className={cn("transition-transform group-hover:scale-110", isActive ? "text-white" : "text-slate-400 group-hover:text-emerald-400")} />
+                            {!collapsed && (
+                                <span className="font-medium">{item.label}</span>
+                            )}
                         </Link>
                     );
                 })}
             </nav>
 
-            <div className="p-4 border-t border-gray-200 dark:border-dark-border">
-                <button className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors">
-                    <LogOut className="w-5 h-5" />
-                    Sign Out
+            {/* Footer / Stats */}
+            <div className="p-4 mt-auto border-t border-white/5">
+                {!collapsed && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 mb-4">
+                        <div className="flex items-center gap-2 text-emerald-400 mb-1">
+                            <TrendingDown size={16} />
+                            <span className="text-xs font-bold uppercase tracking-wider text-emerald-500">Eco-Score</span>
+                        </div>
+                        <div className="text-2xl font-bold text-white">85<span className="text-slate-500 text-sm ml-1">/100</span></div>
+                        <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                            <div className="bg-emerald-500 h-full w-[85%]" />
+                        </div>
+                    </div>
+                )}
+
+                <button
+                    onClick={() => signOut()}
+                    className={cn(
+                        "flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-500 transition-all w-full group",
+                        collapsed && "justify-center"
+                    )}
+                >
+                    <LogOut size={22} className="group-hover:translate-x-1 transition-transform" />
+                    {!collapsed && <span className="font-medium">Déconnexion</span>}
                 </button>
             </div>
-        </aside>
+        </div>
     );
 }

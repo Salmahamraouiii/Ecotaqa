@@ -1,183 +1,187 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Zap, TrendingDown, Leaf, AlertTriangle } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Zap, TrendingDown, Leaf, TrendingUp, LucideIcon, Calendar, Filter, Share2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import RealTimeMonitor from '@/components/RealTimeMonitor';
+import AlertsCenter from '@/components/AlertsCenter';
+import RegionalMap from '@/components/RegionalMap';
+import GamificationHub from '@/components/GamificationHub';
+import SustainabilityTracker from '@/components/SustainabilityTracker';
+import { Button } from '@/components/ui/button';
 
-// Initial data structure for the chart
-const initialChartData = Array(7).fill(0).map((_, i) => ({
-    name: new Date(Date.now() - (6 - i) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    value: 0
-}));
+interface StatCardProps {
+    title: string;
+    value: string;
+    subtext: string;
+    icon: LucideIcon;
+    trend: 'up' | 'down';
+    color: string;
+    delay?: string;
+}
 
-const StatCard = ({ title, value, subtext, icon: Icon, trend, color }: any) => (
-    <Card>
-        <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
-                    <h3 className="text-2xl font-bold mt-2 text-gray-900 dark:text-white">{value}</h3>
-                    <p className={cn("text-xs mt-1 flex items-center", trend === 'up' ? 'text-red-500' : 'text-green-500')}>
-                        {trend === 'down' ? <TrendingDown className="w-3 h-3 mr-1" /> : <Zap className="w-3 h-3 mr-1" />}
-                        {subtext}
-                    </p>
+const StatCard = ({ title, value, subtext, icon: Icon, trend, color, delay }: StatCardProps) => (
+    <div className={cn(
+        "bg-slate-900/40 backdrop-blur-xl border border-white/5 p-6 rounded-3xl hover:border-emerald-500/30 transition-all duration-300 group animate-in fade-in slide-in-from-bottom-4",
+        delay
+    )}>
+        <div className="flex items-start justify-between">
+            <div>
+                <p className="text-sm font-medium text-slate-400 mb-2">{title}</p>
+                <div className="flex items-baseline gap-2">
+                    <h3 className="text-3xl font-bold text-white tracking-tight">{value}</h3>
                 </div>
-                <div className={cn("p-3 rounded-full bg-opacity-10", color)}>
-                    <Icon className={cn("w-6 h-6", color.replace('bg-', 'text-'))} />
+                <div className={cn(
+                    "flex items-center gap-1 mt-3 px-2 py-1 rounded-full text-[10px] font-bold uppercase w-fit tracking-wider",
+                    trend === 'down' ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
+                )}>
+                    {trend === 'down' ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
+                    {subtext}
                 </div>
             </div>
-        </CardContent>
-    </Card>
+            <div className={cn("p-4 rounded-2xl bg-gradient-to-br transition-transform group-hover:scale-110 duration-300", color)}>
+                <Icon className="w-6 h-6 text-white" />
+            </div>
+        </div>
+    </div>
 );
 
 export default function DashboardPage() {
-    const [chartData, setChartData] = useState(initialChartData);
-    const [currentLoad, setCurrentLoad] = useState(0);
-    const [status, setStatus] = useState('NORMAL');
+    const [summary, setSummary] = useState({
+        totalUsage: 0,
+        totalCost: 0,
+        efficiencyScore: 0,
+        activeAlerts: 0
+    });
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchSummary = async () => {
             try {
-                const res = await fetch('/api/monitor');
+                const res = await fetch('/api/dashboard');
+                if (!res.ok) throw new Error('Failed to fetch');
                 const data = await res.json();
-
-                setCurrentLoad(data.value);
-                setStatus(data.status);
-
-                setChartData(prev => {
-                    const newData = [...prev.slice(1), {
-                        name: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-                        value: data.value
-                    }];
-                    return newData;
-                });
+                if (data.summary) {
+                    setSummary(data.summary);
+                }
             } catch (err) {
-                console.error("Failed to fetch monitor data");
+                console.error("Failed to fetch dashboard summary", err);
+            } finally {
+                setLoading(false);
             }
         };
 
-        // Initial fetch
-        fetchData();
-
-        // Polling every 2 seconds
-        const interval = setInterval(fetchData, 2000);
+        fetchSummary();
+        const interval = setInterval(fetchSummary, 30000);
         return () => clearInterval(interval);
     }, []);
 
+    if (loading) return (
+        <div className="h-[80vh] flex items-center justify-center">
+            <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+        </div>
+    );
+
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>
-                <div className="flex gap-2">
-                    <span className={cn(
-                        "text-xs font-medium px-2.5 py-0.5 rounded",
-                        status === 'HIGH'
-                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-                            : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                    )}>
-                        System {status === 'HIGH' ? 'Overload' : 'Normal'}
-                    </span>
-                    <button
-                        onClick={() => window.location.href = '/api/auth/signout'}
-                        className="text-xs text-red-400 hover:text-red-300 underline ml-2"
-                    >
-                        Sign Out
-                    </button>
+        <div className="space-y-10 pb-10">
+            {/* Header / Actions */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-4xl font-extrabold text-white tracking-tight">Bonjour, Équipe Ecotaqa</h1>
+                    <p className="text-slate-400 mt-1">Voici un aperçu de la performance énergétique de votre entreprise.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Button variant="outline" className="bg-slate-900/50 border-white/5 text-white hover:bg-slate-800 rounded-2xl h-12">
+                        <Calendar className="mr-2 h-4 w-4" />
+                        7 derniers jours
+                    </Button>
+                    <Button variant="outline" className="bg-slate-900/50 border-white/5 text-white hover:bg-slate-800 rounded-2xl h-12">
+                        <Filter className="mr-2 h-4 w-4" />
+                        Filtres
+                    </Button>
+                    <Button className="bg-emerald-500 hover:bg-emerald-400 text-white rounded-2xl h-12 shadow-lg shadow-emerald-500/20">
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Exporter
+                    </Button>
                 </div>
             </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
-                    title="Current Load"
-                    value={`${currentLoad} kWh`}
-                    subtext={status === 'HIGH' ? "High Usage!" : "Optimal Range"}
+                    title="Consommation Totale"
+                    value={`${(summary.totalUsage / 1000).toFixed(1)} MWh`}
+                    subtext="2.4% Économisé"
                     icon={Zap}
-                    trend={status === 'HIGH' ? 'up' : 'down'}
-                    color={status === 'HIGH' ? "bg-red-500 text-red-500" : "bg-blue-500 text-blue-500"}
+                    trend="down"
+                    color="from-emerald-400 to-green-600 shadow-emerald-500/20 shadow-lg"
+                    delay="delay-0"
                 />
                 <StatCard
-                    title="Carbon Footprint"
-                    value="2.4 Tons"
-                    subtext="-5% this month"
+                    title="Coût Estimé"
+                    value={`${summary.totalCost.toLocaleString()} €`}
+                    subtext="Sous le budget"
                     icon={Leaf}
                     trend="down"
-                    color="bg-green-500 text-green-500"
+                    color="from-blue-400 to-indigo-600 shadow-blue-500/20 shadow-lg"
+                    delay="delay-75"
                 />
                 <StatCard
-                    title="Cost Estimate"
-                    value="$1,240"
-                    subtext="+2% variance"
+                    title="Score d'Efficacité"
+                    value={`${summary.efficiencyScore}/100`}
+                    subtext="+5 pts vs région"
+                    icon={TrendingUp}
+                    trend="up"
+                    color="from-purple-400 to-indigo-600 shadow-purple-500/20 shadow-lg"
+                    delay="delay-150"
+                />
+                <StatCard
+                    title="Alertes Actives"
+                    value={summary.activeAlerts.toString()}
+                    subtext={summary.activeAlerts > 0 ? "Action requise" : "Tout est normal"}
                     icon={AlertTriangle}
-                    trend="up"
-                    color="bg-yellow-500 text-yellow-500"
-                />
-                <StatCard
-                    title="Avg Efficiency"
-                    value="94%"
-                    subtext="Top 10% of users"
-                    icon={TrendingDown}
-                    trend="up"
-                    color="bg-purple-500 text-purple-500"
+                    trend={summary.activeAlerts > 0 ? 'up' : 'down'}
+                    color={summary.activeAlerts > 0 ? "from-red-400 to-orange-600 shadow-red-500/20 shadow-lg" : "from-slate-400 to-slate-600 shadow-slate-500/20 shadow-lg"}
+                    delay="delay-300"
                 />
             </div>
 
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Chart */}
-                <Card className="lg:col-span-2">
-                    <CardHeader>
-                        <CardTitle>Real-Time Consumption</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="h-[300px] w-full min-w-0">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={chartData}>
-                                    <defs>
-                                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                                            <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280' }} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280' }} domain={[0, 600]} />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#F3F4F6' }}
-                                        itemStyle={{ color: '#F3F4F6' }}
-                                    />
-                                    <Area type="monotone" dataKey="value" stroke="#8884d8" fillOpacity={1} fill="url(#colorValue)" isAnimationActive={false} />
-                                </AreaChart>
-                            </ResponsiveContainer>
+            {/* Main Content Area */}
+            <div className="grid grid-cols-1 xl:grid-cols-8 gap-8">
+                {/* Left: Charts & Map */}
+                <div className="xl:col-span-5 space-y-8">
+                    <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 p-8 rounded-[2rem] shadow-2xl">
+                        <div className="flex items-center justify-between mb-8">
+                            <h3 className="text-xl font-bold text-white">Monitoring en Temps Réel</h3>
+                            <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping" />
+                                <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest">En Direct</span>
+                            </div>
                         </div>
-                    </CardContent>
-                </Card>
+                        <RealTimeMonitor />
+                    </div>
 
-                {/* Side Panel / Notifications */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Recent Alerts</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {[1, 2, 3].map((i) => (
-                                <div key={i} className="flex items-start gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-                                    <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-full">
-                                        <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white">High Usage Detected</h4>
-                                        <p className="text-xs text-gray-500">Building A, Floor 3 exceeded threshold by 15%.</p>
-                                        <span className="text-[10px] text-gray-400">2 mins ago</span>
-                                    </div>
-                                </div>
-                            ))}
+                    <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 p-8 rounded-[2rem] shadow-2xl">
+                        <div className="mb-6">
+                            <h3 className="text-xl font-bold text-white">Cartographie Régionale</h3>
+                            <p className="text-sm text-slate-400 mt-1">Status de consommation par zone géographique.</p>
                         </div>
-                    </CardContent>
-                </Card>
+                        <div className="h-[450px] rounded-2xl overflow-hidden border border-white/5">
+                            <RegionalMap />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right: Sidebar Widgets */}
+                <div className="xl:col-span-3 space-y-8">
+                    <AlertsCenter />
+                    <SustainabilityTracker />
+                    <GamificationHub />
+                </div>
             </div>
         </div>
     );
 }
+
+// Ensure AlertTriangle is imported from lucide
+import { AlertTriangle as AlertIcon } from 'lucide-react';
