@@ -156,5 +156,4 @@ Eco Taqa is a **web platform** composed of dashboards and monitoring tools conne
 
 ---
 
-## 📂 Project Structure
 
